@@ -1,0 +1,360 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视频上传</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .upload-area {
+            background-color: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .drop-zone {
+            border: 2px dashed #3498db;
+            border-radius: 8px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+            .drop-zone:hover, .drop-zone.dragover {
+                background-color: #f0f8ff;
+                border-color: #2980b9;
+            }
+
+            .drop-zone p {
+                margin: 10px 0;
+                color: #7f8c8d;
+            }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn {
+            display: inline-block;
+            background-color: #3498db;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background-color 0.3s;
+            text-align: center;
+        }
+
+            .btn:hover {
+                background-color: #2980b9;
+            }
+
+            .btn:disabled {
+                background-color: #bdc3c7;
+                cursor: not-allowed;
+            }
+
+        .progress-container {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .progress-bar {
+            height: 20px;
+            background-color: #ecf0f1;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress {
+            height: 100%;
+            background-color: #2ecc71;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .progress-text {
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .result {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            display: none;
+        }
+
+            .result h2 {
+                color: #2c3e50;
+                margin-bottom: 15px;
+            }
+
+        .result-item {
+            margin-bottom: 10px;
+        }
+
+        .result-label {
+            font-weight: 600;
+            color: #34495e;
+        }
+
+        .play-link {
+            display: inline-block;
+            background-color: #2ecc71;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+        }
+
+            .play-link:hover {
+                background-color: #27ae60;
+            }
+
+        .error {
+            color: #e74c3c;
+            background-color: #fdeded;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>视频上传与处理系统</h1>
+            <p>上传视频文件，系统将自动进行HLS切片处理</p>
+        </header>
+
+        <div class="upload-area">
+            <div class="drop-zone" id="dropZone">
+                <p>拖放视频文件到此处</p>
+                <p>或</p>
+                <button class="btn" id="selectBtn">选择文件</button>
+                <input type="file" id="fileInput" class="file-input" accept="video/*">
+            </div>
+
+            <button class="btn" id="uploadBtn" disabled>上传并处理</button>
+
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar">
+                    <div class="progress" id="progressBar"></div>
+                </div>
+                <div class="progress-text" id="progressText">0%</div>
+            </div>
+
+            <div class="error" id="errorMsg"></div>
+        </div>
+
+        <div class="result" id="result">
+            <h2>处理结果</h2>
+            <div class="result-item">
+                <span class="result-label">视频名称:</span>
+                <span id="originalFile"></span>
+            </div>
+            <div class="result-item">
+                <span class="result-label">生成切片:</span>
+                <span id="hlsFiles"></span>
+            </div>
+            <div class="result-item">
+                <span class="result-label">播放地址:</span>
+                <a href="#" id="playbackUrl" target="_blank" class="play-link">播放视频</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
+            const selectBtn = document.getElementById('selectBtn');
+            const uploadBtn = document.getElementById('uploadBtn');
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            const result = document.getElementById('result');
+            const originalFile = document.getElementById('originalFile');
+            const hlsFiles = document.getElementById('hlsFiles');
+            const playbackUrl = document.getElementById('playbackUrl');
+            const errorMsg = document.getElementById('errorMsg');
+
+            let selectedFile = null;
+
+            // 选择文件按钮点击事件
+            selectBtn.addEventListener('click', function() {
+                fileInput.click();
+            });
+
+            // 文件选择事件
+            fileInput.addEventListener('change', function(e) {
+                if (e.target.files.length > 0) {
+                    handleFile(e.target.files[0]);
+                }
+            });
+
+            // 拖放事件处理
+            dropZone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+
+            dropZone.addEventListener('dragleave', function() {
+                dropZone.classList.remove('dragover');
+            });
+
+            dropZone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+
+                if (e.dataTransfer.files.length > 0) {
+                    handleFile(e.dataTransfer.files[0]);
+                }
+            });
+
+            // 上传按钮点击事件
+            uploadBtn.addEventListener('click', function() {
+                if (!selectedFile) return;
+
+                uploadFile(selectedFile);
+            });
+
+            // 处理选择的文件
+            function handleFile(file) {
+                // 验证文件类型
+                const validExtensions = ['.mp4', '.mov', '.avi', '.mkv', '.webm'];
+                const extension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+
+                if (!validExtensions.includes(extension)) {
+                    showError(`不支持的文件类型: ${extension}`);
+                    return;
+                }
+
+                // 验证文件大小 (最大1GB)
+                if (file.size > 1073741824) {
+                    showError('文件太大，最大支持1GB');
+                    return;
+                }
+
+                // 显示文件名
+                dropZone.innerHTML = `<p>已选择: ${file.name}</p>`;
+                selectedFile = file;
+                uploadBtn.disabled = false;
+                hideError();
+            }
+
+            // 上传文件
+            function uploadFile(file) {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                // 重置UI
+                uploadBtn.disabled = true;
+                progressContainer.style.display = 'block';
+                progressBar.style.width = '0%';
+                progressText.textContent = '0%';
+                result.style.display = 'none';
+                hideError();
+
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', '/api/upload/video', true);
+
+                // 上传进度
+                xhr.upload.onprogress = function(e) {
+                    if (e.lengthComputable) {
+                        const percent = Math.round((e.loaded / e.total) * 100);
+                        progressBar.style.width = percent + '%';
+                        progressText.textContent = percent + '%';
+                    }
+                };
+
+                // 请求完成
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        const response = JSON.parse(xhr.responseText);
+                        showResult(response);
+                    } else {
+                        try {
+                            const errorResponse = JSON.parse(xhr.responseText);
+                            showError(`上传失败: ${errorResponse.Error || xhr.statusText}`);
+                        } catch {
+                            showError(`上传失败: ${xhr.statusText}`);
+                        }
+                    }
+                };
+
+                // 请求错误
+                xhr.onerror = function() {
+                    showError('网络错误，请重试');
+                };
+
+                xhr.send(formData);
+            }
+
+            // 显示处理结果
+            function showResult(response) {
+                originalFile.textContent = response.OriginalFile;
+                hlsFiles.textContent = response.HlsFiles + ' 个';
+                playbackUrl.href = response.PlaybackUrl;
+                playbackUrl.textContent = '播放视频';
+
+                result.style.display = 'block';
+            }
+
+            // 显示错误信息
+            function showError(message) {
+                errorMsg.textContent = message;
+                errorMsg.style.display = 'block';
+                uploadBtn.disabled = false;
+            }
+
+            // 隐藏错误信息
+            function hideError() {
+                errorMsg.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
