@@ -49,10 +49,13 @@ namespace VideoProcessingAPI.Controllers
                     // 保存上传文件
                     var tempFilePath = await _fileService.SaveUploadedFileAsync(file, tempDir);
 
+                    // 获取当前日期作为文件夹名称 (格式: yyyy-MM-dd)
+                    var dateFolder = DateTime.Now.ToString("yyyy-MM-dd");
+
                     // 上传原始视频到MinIO
                     await _minioService.UploadFileAsync(
                         _minioConfig.RawBucket,
-                        file.FileName,
+                        $"{dateFolder}/{file.FileName}",
                         tempFilePath);
 
                     // 处理视频并生成HLS切片
@@ -65,7 +68,7 @@ namespace VideoProcessingAPI.Controllers
                     // 上传切片文件到MinIO
                     foreach (var hlsFile in processingResult.HlsFiles)
                     {
-                        var objectName = $"hls/{Path.GetFileNameWithoutExtension(file.FileName)}/{Path.GetFileName(hlsFile)}";
+                        var objectName = $"hls/{dateFolder}/{Path.GetFileNameWithoutExtension(file.FileName)}/{Path.GetFileName(hlsFile)}";
                         await _minioService.UploadFileAsync(_minioConfig.HlsBucket, objectName, hlsFile);
                     }
 

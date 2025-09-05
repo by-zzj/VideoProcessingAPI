@@ -95,12 +95,15 @@ namespace VideoProcessingAPI.Services.Implementations
                 throw new Exception($"FFmpeg处理失败，未生成播放列表文件: {outputPlaylist}");
             }
 
+            // 获取当前日期作为文件夹名称 (格式: yyyy-MM-dd)
+            var dateFolder = DateTime.Now.ToString("yyyy-MM-dd");
+
             // 修改m3u8文件，将相对路径替换为MinIO公开URL
             var m3u8Content = await System.IO.File.ReadAllTextAsync(outputPlaylist);
             var videoName = Path.GetFileNameWithoutExtension(originalFileName);
 
             // 构建MinIO公开访问URL
-            var minioPublicUrl = $"http://{_minioConfig.Endpoint}/{_minioConfig.HlsBucket}/hls/{videoName}";
+            var minioPublicUrl = $"http://{_minioConfig.Endpoint}/{_minioConfig.HlsBucket}/hls/{dateFolder}/{videoName}";
 
             // 使用正则表达式替换所有.ts文件引用
             m3u8Content = Regex.Replace(
@@ -116,8 +119,8 @@ namespace VideoProcessingAPI.Services.Implementations
             // 返回所有切片文件
             var files = Directory.GetFiles(hlsOutputDir, "*", SearchOption.AllDirectories);
 
-            // 构建播放URL
-            var playbackUrl = $"{baseUrl}/api/play/{videoName}/index.m3u8";
+            // 构建播放URL：包含日期路径和视频名称
+            var playbackUrl = $"{baseUrl}/api/play/{dateFolder}/{videoName}/index.m3u8";
 
             return new ProcessingResult
             {
