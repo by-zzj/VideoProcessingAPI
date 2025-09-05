@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>视频上传</title>
+    <title>视频上传与HLS播放系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.0/dist/hls.min.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -13,20 +14,27 @@
         }
 
         body {
-            background-color: #f5f7fa;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4efe9 100%);
             color: #333;
             line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
         }
 
         .container {
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
             padding: 20px;
         }
 
         header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
         }
 
         h1 {
@@ -34,32 +42,26 @@
             margin-bottom: 10px;
         }
 
-        .upload-area {
-            background-color: white;
-            border-radius: 10px;
-            padding: 30px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        .upload-section {
             margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
         }
 
         .drop-zone {
             border: 2px dashed #3498db;
             border-radius: 8px;
-            padding: 40px 20px;
+            padding: 30px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.3s ease;
-            margin-bottom: 20px;
+            transition: all 0.3s;
+            margin-bottom: 15px;
         }
 
-            .drop-zone:hover, .drop-zone.dragover {
+            .drop-zone:hover {
                 background-color: #f0f8ff;
                 border-color: #2980b9;
-            }
-
-            .drop-zone p {
-                margin: 10px 0;
-                color: #7f8c8d;
             }
 
         .file-input {
@@ -67,187 +69,235 @@
         }
 
         .btn {
-            display: inline-block;
-            background-color: #3498db;
+            background: #3498db;
             color: white;
-            padding: 12px 24px;
+            padding: 12px 20px;
             border: none;
-            border-radius: 5px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 16px;
             font-weight: 600;
-            transition: background-color 0.3s;
-            text-align: center;
+            transition: background 0.3s;
+            display: inline-block;
+            margin-right: 10px;
         }
 
             .btn:hover {
-                background-color: #2980b9;
+                background: #2980b9;
             }
 
             .btn:disabled {
-                background-color: #bdc3c7;
+                background: #bdc3c7;
                 cursor: not-allowed;
             }
 
+        .btn-secondary {
+            background: #7f8c8d;
+        }
+
+            .btn-secondary:hover {
+                background: #95a5a6;
+            }
+
         .progress-container {
-            margin-top: 20px;
+            margin: 15px 0;
             display: none;
         }
 
         .progress-bar {
             height: 20px;
-            background-color: #ecf0f1;
+            background: #ecf0f1;
             border-radius: 10px;
             overflow: hidden;
-            margin-bottom: 10px;
         }
 
         .progress {
             height: 100%;
-            background-color: #2ecc71;
+            background: #2ecc71;
             width: 0%;
             transition: width 0.3s;
         }
 
-        .progress-text {
-            text-align: center;
-            font-weight: 500;
-        }
-
-        .result {
-            background-color: white;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        .error {
+            color: #e74c3c;
+            background: #fdeded;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 15px 0;
             display: none;
+            border-left: 4px solid #e74c3c;
         }
 
-            .result h2 {
-                color: #2c3e50;
-                margin-bottom: 15px;
-            }
-
-        .result-item {
-            margin-bottom: 10px;
+        .player-section {
+            display: none;
+            margin-top: 30px;
         }
 
-        .result-label {
+        .video-container {
+            position: relative;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        video {
+            width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .video-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .info-item {
+            margin-bottom: 8px;
+            display: flex;
+        }
+
+        .info-label {
             font-weight: 600;
+            min-width: 120px;
             color: #34495e;
         }
 
-        .play-link {
-            display: inline-block;
-            background-color: #2ecc71;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 5px;
-            text-decoration: none;
-            font-weight: 600;
-            margin-top: 10px;
-            transition: background-color 0.3s;
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
         }
 
-            .play-link:hover {
-                background-color: #27ae60;
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
             }
 
-        .error {
-            color: #e74c3c;
-            background-color: #fdeded;
-            padding: 10px;
-            border-radius: 5px;
-            margin-top: 10px;
-            display: none;
+            .drop-zone {
+                padding: 20px;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>视频上传与处理系统</h1>
-            <p>上传视频文件，系统将自动进行HLS切片处理</p>
+            <h1>视频上传与HLS播放系统</h1>
+            <p>上传视频文件，系统将自动处理并生成HLS流</p>
         </header>
 
-        <div class="upload-area">
+        <div class="upload-section">
             <div class="drop-zone" id="dropZone">
-                <p>拖放视频文件到此处</p>
-                <p>或</p>
-                <button class="btn" id="selectBtn">选择文件</button>
+                <p><i class="fas fa-cloud-upload-alt" style="font-size: 48px; color: #3498db; margin-bottom: 15px;"></i></p>
+                <p>拖放视频文件到此处或点击选择文件</p>
                 <input type="file" id="fileInput" class="file-input" accept="video/*">
             </div>
 
             <button class="btn" id="uploadBtn" disabled>上传并处理</button>
+            <button class="btn btn-secondary" id="resetBtn">重置</button>
 
             <div class="progress-container" id="progressContainer">
                 <div class="progress-bar">
                     <div class="progress" id="progressBar"></div>
                 </div>
-                <div class="progress-text" id="progressText">0%</div>
+                <div id="progressText" style="text-align: center; margin-top: 8px; font-weight: 500;">0%</div>
             </div>
 
             <div class="error" id="errorMsg"></div>
         </div>
 
-        <div class="result" id="result">
-            <h2>处理结果</h2>
-            <div class="result-item">
-                <span class="result-label">视频名称:</span>
-                <span id="originalFile"></span>
+        <div class="player-section" id="playerSection">
+            <h2>视频播放</h2>
+            <div class="video-container">
+                <video id="videoPlayer" controls></video>
             </div>
-            <div class="result-item">
-                <span class="result-label">生成切片:</span>
-                <span id="hlsFiles"></span>
+
+            <div class="video-info">
+                <div class="info-item">
+                    <span class="info-label">视频名称:</span>
+                    <span id="originalFile">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">视频时长:</span>
+                    <span id="videoDuration">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">生成切片:</span>
+                    <span id="hlsFiles">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">播放地址:</span>
+                    <span id="playbackUrl">-</span>
+                </div>
             </div>
-            <div class="result-item">
-                <span class="result-label">播放地址:</span>
-                <a href="#" id="playbackUrl" target="_blank" class="play-link">播放视频</a>
+
+            <div class="action-buttons">
+                <a href="#" id="playLink" class="btn" target="_blank">在新窗口播放</a>
+                <a href="#" id="downloadLink" class="btn btn-secondary">下载视频</a>
             </div>
         </div>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const dropZone = document.getElementById('dropZone');
             const fileInput = document.getElementById('fileInput');
-            const selectBtn = document.getElementById('selectBtn');
             const uploadBtn = document.getElementById('uploadBtn');
+            const resetBtn = document.getElementById('resetBtn');
             const progressContainer = document.getElementById('progressContainer');
             const progressBar = document.getElementById('progressBar');
             const progressText = document.getElementById('progressText');
-            const result = document.getElementById('result');
-            const originalFile = document.getElementById('originalFile');
-            const hlsFiles = document.getElementById('hlsFiles');
-            const playbackUrl = document.getElementById('playbackUrl');
             const errorMsg = document.getElementById('errorMsg');
+            const playerSection = document.getElementById('playerSection');
+            const videoPlayer = document.getElementById('videoPlayer');
+            const originalFile = document.getElementById('originalFile');
+            const videoDuration = document.getElementById('videoDuration');
+            const hlsFiles = document.getElementById('hlsFiles');
+            const playbackUrlElem = document.getElementById('playbackUrl');
+            const playLink = document.getElementById('playLink');
+            const downloadLink = document.getElementById('downloadLink');
 
             let selectedFile = null;
+            let uploadStartTime = null;
+            let progressInterval = null;
 
             // 选择文件按钮点击事件
-            selectBtn.addEventListener('click', function() {
+            dropZone.addEventListener('click', function () {
                 fileInput.click();
             });
 
+            // 重置按钮点击事件
+            resetBtn.addEventListener('click', function () {
+                resetUI();
+            });
+
             // 文件选择事件
-            fileInput.addEventListener('change', function(e) {
+            fileInput.addEventListener('change', function (e) {
                 if (e.target.files.length > 0) {
                     handleFile(e.target.files[0]);
                 }
             });
 
             // 拖放事件处理
-            dropZone.addEventListener('dragover', function(e) {
+            dropZone.addEventListener('dragover', function (e) {
                 e.preventDefault();
-                dropZone.classList.add('dragover');
+                dropZone.style.borderColor = '#2980b9';
+                dropZone.style.backgroundColor = '#f0f8ff';
             });
 
-            dropZone.addEventListener('dragleave', function() {
-                dropZone.classList.remove('dragover');
+            dropZone.addEventListener('dragleave', function () {
+                dropZone.style.borderColor = '#3498db';
+                dropZone.style.backgroundColor = 'transparent';
             });
 
-            dropZone.addEventListener('drop', function(e) {
+            dropZone.addEventListener('drop', function (e) {
                 e.preventDefault();
-                dropZone.classList.remove('dragover');
+                dropZone.style.borderColor = '#3498db';
+                dropZone.style.backgroundColor = 'transparent';
 
                 if (e.dataTransfer.files.length > 0) {
                     handleFile(e.dataTransfer.files[0]);
@@ -255,9 +305,8 @@
             });
 
             // 上传按钮点击事件
-            uploadBtn.addEventListener('click', function() {
+            uploadBtn.addEventListener('click', function () {
                 if (!selectedFile) return;
-
                 uploadFile(selectedFile);
             });
 
@@ -279,7 +328,20 @@
                 }
 
                 // 显示文件名
-                dropZone.innerHTML = `<p>已选择: ${file.name}</p>`;
+                dropZone.innerHTML = `
+                        <p><i class="fas fa-file-video" style="font-size: 48px; color: #2ecc71; margin-bottom: 15px;"></i></p>
+                        <p>已选择: ${file.name}</p>
+                        <p>文件大小: ${formatFileSize(file.size)}</p>
+                        <input type="file" id="fileInput" class="file-input" accept="video/*">
+                    `;
+
+                // 重新绑定事件
+                document.getElementById('fileInput').addEventListener('change', function (e) {
+                    if (e.target.files.length > 0) {
+                        handleFile(e.target.files[0]);
+                    }
+                });
+
                 selectedFile = file;
                 uploadBtn.disabled = false;
                 hideError();
@@ -292,17 +354,25 @@
 
                 // 重置UI
                 uploadBtn.disabled = true;
+                resetBtn.disabled = true;
                 progressContainer.style.display = 'block';
                 progressBar.style.width = '0%';
                 progressText.textContent = '0%';
-                result.style.display = 'none';
+                playerSection.style.display = 'none';
                 hideError();
+
+                // 开始计时
+                uploadStartTime = new Date();
+                updateElapsedTime();
 
                 const xhr = new XMLHttpRequest();
                 xhr.open('POST', '/api/upload/video', true);
 
+                // 设置超时时间
+                xhr.timeout = 300000; // 5分钟超时
+
                 // 上传进度
-                xhr.upload.onprogress = function(e) {
+                xhr.upload.onprogress = function (e) {
                     if (e.lengthComputable) {
                         const percent = Math.round((e.loaded / e.total) * 100);
                         progressBar.style.width = percent + '%';
@@ -311,10 +381,16 @@
                 };
 
                 // 请求完成
-                xhr.onload = function() {
+                xhr.onload = function () {
+                    clearInterval(progressInterval);
+
                     if (xhr.status === 200) {
-                        const response = JSON.parse(xhr.responseText);
-                        showResult(response);
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            showResult(response);
+                        } catch (e) {
+                            showError('服务器返回数据格式错误: ' + e.message);
+                        }
                     } else {
                         try {
                             const errorResponse = JSON.parse(xhr.responseText);
@@ -323,24 +399,87 @@
                             showError(`上传失败: ${xhr.statusText}`);
                         }
                     }
+
+                    resetBtn.disabled = false;
                 };
 
                 // 请求错误
-                xhr.onerror = function() {
-                    showError('网络错误，请重试');
+                xhr.onerror = function () {
+                    clearInterval(progressInterval);
+                    showError('网络错误，请检查服务器连接');
+                    resetBtn.disabled = false;
+                };
+
+                // 请求超时
+                xhr.ontimeout = function () {
+                    clearInterval(progressInterval);
+                    showError('请求超时，请检查网络连接或稍后重试');
+                    resetBtn.disabled = false;
                 };
 
                 xhr.send(formData);
+
+                // 更新已用时间
+                progressInterval = setInterval(updateElapsedTime, 1000);
             }
 
             // 显示处理结果
             function showResult(response) {
-                originalFile.textContent = response.OriginalFile;
-                hlsFiles.textContent = response.HlsFiles + ' 个';
-                playbackUrl.href = response.PlaybackUrl;
-                playbackUrl.textContent = '播放视频';
+                // 安全地处理响应数据
+                const playbackUrl = response.playbackUrl || '';
+                const originalFileName = response.originalFile || '未知文件';
+                const duration = response.duration || 0;
+                const hlsFilesCount = response.hlsFilesCount || 0;
 
-                result.style.display = 'block';
+                // 更新UI
+                originalFile.textContent = originalFileName;
+                videoDuration.textContent = formatDuration(duration);
+                hlsFiles.textContent = hlsFilesCount + ' 个切片文件';
+                playbackUrlElem.textContent = playbackUrl;
+
+                // 设置链接
+                playLink.href = playbackUrl;
+                downloadLink.href = playbackUrl.replace('/api/play/', '/api/download/');
+
+                // 初始化HLS播放器
+                if (Hls.isSupported() && playbackUrl) {
+                    const hls = new Hls();
+                    hls.loadSource(playbackUrl);
+                    hls.attachMedia(videoPlayer);
+                    hls.on(Hls.Events.MANIFEST_PARSED, function () {
+                        playerSection.style.display = 'block';
+                        videoPlayer.play().catch(e => {
+                            console.error('自动播放失败:', e);
+                        });
+                    });
+
+                    hls.on(Hls.Events.ERROR, function (event, data) {
+                        if (data.fatal) {
+                            switch (data.type) {
+                                case Hls.ErrorTypes.NETWORK_ERROR:
+                                    showError('网络错误: ' + data.details);
+                                    break;
+                                case Hls.ErrorTypes.MEDIA_ERROR:
+                                    showError('媒体错误: ' + data.details);
+                                    break;
+                                default:
+                                    showError('播放错误: ' + data.details);
+                                    break;
+                            }
+                        }
+                    });
+                } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl') && playbackUrl) {
+                    // Safari原生支持HLS
+                    videoPlayer.src = playbackUrl;
+                    videoPlayer.addEventListener('loadedmetadata', function () {
+                        playerSection.style.display = 'block';
+                        videoPlayer.play().catch(e => {
+                            console.error('自动播放失败:', e);
+                        });
+                    });
+                } else {
+                    showError('您的浏览器不支持HLS播放，请使用Chrome、Firefox或Safari');
+                }
             }
 
             // 显示错误信息
@@ -354,7 +493,84 @@
             function hideError() {
                 errorMsg.style.display = 'none';
             }
+
+            // 重置UI
+            function resetUI() {
+                clearInterval(progressInterval);
+
+                // 重置变量
+                selectedFile = null;
+                uploadStartTime = null;
+
+                // 重置UI元素
+                dropZone.innerHTML = `
+                        <p><i class="fas fa-cloud-upload-alt" style="font-size: 48px; color: #3498db; margin-bottom: 15px;"></i></p>
+                        <p>拖放视频文件到此处或点击选择文件</p>
+                        <input type="file" id="fileInput" class="file-input" accept="video/*">
+                    `;
+
+                // 重新绑定事件
+                document.getElementById('fileInput').addEventListener('change', function (e) {
+                    if (e.target.files.length > 0) {
+                        handleFile(e.target.files[0]);
+                    }
+                });
+
+                dropZone.addEventListener('click', function () {
+                    document.getElementById('fileInput').click();
+                });
+
+                uploadBtn.disabled = true;
+                resetBtn.disabled = false;
+                progressContainer.style.display = 'none';
+                playerSection.style.display = 'none';
+                hideError();
+
+                // 停止视频播放
+                videoPlayer.pause();
+                videoPlayer.src = '';
+            }
+
+            // 更新已用时间
+            function updateElapsedTime() {
+                if (uploadStartTime) {
+                    const currentTime = new Date();
+                    const elapsedSeconds = Math.round((currentTime - uploadStartTime) / 1000);
+                    progressText.textContent = progressText.textContent + ' (' + elapsedSeconds + '秒)';
+                }
+            }
+
+            // 格式化文件大小
+            function formatFileSize(bytes) {
+                if (bytes < 1024) {
+                    return bytes + ' B';
+                } else if (bytes < 1048576) {
+                    return (bytes / 1024).toFixed(2) + ' KB';
+                } else {
+                    return (bytes / 1048576).toFixed(2) + ' MB';
+                }
+            }
+
+            // 格式化视频时长
+            function formatDuration(seconds) {
+                if (!seconds) return '未知';
+
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                const secs = Math.floor(seconds % 60);
+
+                if (hours > 0) {
+                    return `${hours}小时${minutes}分${secs}秒`;
+                } else if (minutes > 0) {
+                    return `${minutes}分${secs}秒`;
+                } else {
+                    return `${secs}秒`;
+                }
+            }
         });
     </script>
+
+    <!-- Font Awesome 图标 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
 </body>
 </html>

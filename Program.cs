@@ -1,24 +1,22 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using VideoProcessingAPI.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 添加服务
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
+// 添加配置和服务
+builder.Services.AddConfiguration(builder.Configuration);
+builder.Services.AddApplicationServices();
+builder.Services.ConfigureFileUpload(builder.Configuration);
+builder.Services.ValidateConfiguration(builder.Configuration);
 
-// 配置大文件上传
-builder.Services.Configure<FormOptions>(options =>
-{
-    options.MultipartBodyLengthLimit = 1073741824; // 1GB
-});
-builder.WebHost.ConfigureKestrel(serverOptions =>
-{
-    serverOptions.Limits.MaxRequestBodySize = 1073741824; // 1GB
-});
+// 配置 Kestrel 选项
+builder.WebHost.ConfigureKestrelOptions(builder.Configuration);
+
+// 添加控制器
+builder.Services.AddControllers();
 
 var app = builder.Build();
 
