@@ -16,7 +16,13 @@ namespace VideoProcessingAPI.Controllers
             _logger = logger;
         }
 
-        // 更新路由模板：添加日期路径
+        /// <summary>
+        /// 根据视频上传返回路径，获取切片视频
+        /// </summary>
+        /// <param name="date">日期</param>
+        /// <param name="videoName">视频名称</param>
+        /// <param name="fileName">文件名称</param>
+        /// <returns></returns>
         [HttpGet("{date}/{videoName}/{fileName}")]
         public async Task<IActionResult> GetVideoSegment(string date, string videoName, string fileName)
         {

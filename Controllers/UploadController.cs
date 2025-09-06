@@ -31,6 +31,11 @@ namespace VideoProcessingAPI.Controllers
             _minioConfig = minioConfig.Value;
         }
 
+        /// <summary>
+        /// 视频文件上传
+        /// </summary>
+        /// <param name="file">文件路径</param>
+        /// <returns></returns>
         [HttpPost("video")]
         public async Task<IActionResult> UploadVideo(IFormFile file)
         {

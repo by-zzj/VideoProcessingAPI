@@ -4,6 +4,7 @@ using VideoProcessingAPI.Services.Interfaces;
 using VideoProcessingAPI.Services.Implementations;
 using VideoProcessingAPI.Models.Config;
 using Microsoft.AspNetCore.Http.Features;
+using System.Reflection;
 
 namespace VideoProcessingAPI.Configuration
 {
@@ -82,6 +83,17 @@ namespace VideoProcessingAPI.Configuration
                     throw new Exception($"Failed to create temp directory: {tempPath}");
                 }
             }
+
+            // ===== 添加 Swagger XML 文件存在性验证 =====
+            var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+            var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+
+            if (!File.Exists(xmlPath))
+            {
+                throw new Exception($"Swagger XML documentation file not found at: {xmlPath}. " +
+                    "Please enable XML documentation in project properties.");
+            }
+            // ===== 验证结束 =====
 
             return services;
         }
